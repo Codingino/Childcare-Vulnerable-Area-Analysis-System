@@ -1,11 +1,13 @@
 import math
 import pandas as pd
+from pathlib import Path
 import streamlit as st
 import folium
 from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
 
-CSV_FILE = "csv/childcare.csv"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+CSV_FILE = ROOT_DIR / "csv" / "childcare.csv"
 DEFAULT_LOCATION = (37.5250, 126.8964)
 
 st.set_page_config(page_title="보육 취약지역 분석", layout="wide")
