@@ -50,7 +50,9 @@ def geocode(address):
         ).geocode(address, timeout=10)
         return (location.latitude, location.longitude) if location else DEFAULT_LOCATION
     except Exception:
-        return DEFAULT_LOCATION
+        pass
+
+    return None, None
 
 
 def haversine(lat1, lng1, lat2, lng2):
@@ -66,8 +68,14 @@ def haversine(lat1, lng1, lat2, lng2):
 
 def vulnerability_index(count, occupancy, public_ratio, radius):
     """시설 부족 40%, 혼잡 40%, 공공성 부족 20%를 결합한 자체 지수."""
-    expected = max(3, radius * 3)
-    scarcity = max(0, 1 - count / expected)
+    area = math.pi * radius ** 2
+    facility_density = count / area
+    target_density = 1.0
+
+    scarcity = min(
+        1,
+        max(0, 1 - facility_density / target_density)
+    )
     crowding = min(1, max(0, (occupancy - 70) / 30))
     public_deficit = max(0, 1 - public_ratio / 40)
 
@@ -90,6 +98,10 @@ address = st.sidebar.text_input("기준 주소", "서울특별시 영등포구 �
 radius = st.sidebar.slider("분석 반경(km)", 0.5, 5.0, 2.0, 0.5)
 lat, lng = geocode(address)
 
+if lat is None or lng is None:
+    st.error("주소를 찾지 못했습니다. 더 정확한 주소를 입력해 주세요.")
+    st.stop()
+
 df["거리(km)"] = df.apply(
     lambda row: haversine(lat, lng, row["위도"], row["경도"]), axis=1
 ).round(2)
@@ -103,14 +115,24 @@ if near.empty:
     st.stop()
 
 count = len(near)
-avg_occupancy = near["충원율"].mean()
-public_ratio = near["국공립"].mean() * 100
+avg_occupancy = (
+    near["현원수"].sum()
+    / near["정원수"].sum()
+    * 100
+)
+public_capacity = near.loc[near["국공립"], "정원수"].sum()
+
+public_ratio = (
+    public_capacity
+    / near["정원수"].sum()
+    * 100
+)
 score, level = vulnerability_index(count, avg_occupancy, public_ratio, radius)
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("어린이집 수", f"{count}곳")
 c2.metric("평균 충원율", f"{avg_occupancy:.1f}%")
-c3.metric("국공립 비율", f"{public_ratio:.1f}%")
+c3.metric("국공립 정원 비율", f"{public_ratio:.1f}%")
 c4.metric("보육 취약도", f"{level} ({score}점)")
 
 st.info(
