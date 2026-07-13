@@ -5,7 +5,7 @@ import folium
 from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
 
-CSV_FILE = "csv/어린이집기본정보조회.csv"
+CSV_FILE = "csv/childcare.csv"
 DEFAULT_LOCATION = (37.5250, 126.8964)
 
 st.set_page_config(page_title="보육 취약지역 분석", layout="wide")
