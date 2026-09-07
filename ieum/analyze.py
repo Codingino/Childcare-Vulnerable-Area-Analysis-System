@@ -24,6 +24,14 @@ def summarize(rows, help_rows=None):
             matched=[r for r in mature if r['offered'] and float(r['offered'])-float(r['created'])<=7*86400]
             done=[r for r in mature if r['completed'] and float(r['completed'])-float(r['created'])<=7*86400]
             result['help_metrics']={'connection_rate_7d':len(matched)/len(mature),'completion_rate_7d':len(done)/len(mature),'unmatched_7d':len(mature)-len(matched),'median_response_hours_among_matched':statistics.median((float(r['offered'])-float(r['created']))/3600 for r in matched) if matched else None}
+        feedback=[r for r in help_rows if r.get('completed') and r.get('relief') not in [None,'']]
+        followup=[r for r in help_rows if r.get('completed') and r.get('followup') not in [None,'']]
+        fit=[r for r in help_rows if r.get('completed') and r.get('fit') not in [None,'']]
+        result['completion_feedback']={
+            'response_fit_rate':statistics.mean(int(r['fit']) for r in fit) if len({r['participant_id'] for r in fit})>=5 else '응답자 5명 미만: 비표시',
+            'mean_reported_relief':round(statistics.mean(int(r['relief']) for r in feedback),2) if len({r['participant_id'] for r in feedback})>=5 else '응답자 5명 미만: 비표시',
+            'followup_required_rate':statistics.mean(int(r['followup']) for r in followup) if len({r['participant_id'] for r in followup})>=5 else '응답자 5명 미만: 비표시',
+            'note':'선택 응답. 자기보고 및 요청 건수 가중 집계이며 개인별 효과가 아님.'}
     return result
 
 if __name__=='__main__':
@@ -33,3 +41,4 @@ if __name__=='__main__':
     if a.help_csv:
         with open(a.help_csv,encoding='utf-8-sig') as f: helps=list(csv.DictReader(f))
     print(json.dumps(summarize(rows,helps),ensure_ascii=False,indent=2))
+
